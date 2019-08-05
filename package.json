@@ -1,0 +1,24 @@
+{
+	"name": "piwol-server",
+	"version": "1.0.0",
+	"description": "A Wake on Lan server designed to run on a Raspberry Pi",
+	"main": "index.js",
+	"scripts": {
+		"test": "echo \"Error: no test specified\" && exit 1",
+		"dev": "nodemon index.js"
+	},
+	"keywords": [
+		"Wake on lan",
+		"raspberry pi",
+		"server"
+	],
+	"author": "Nicolò Rebughini",
+	"license": "ISC",
+	"dependencies": {
+		"express": "^4.17.1",
+		"node-arp": "^1.0.6"
+	},
+	"devDependencies": {
+		"nodemon": "^1.19.1"
+	}
+}
