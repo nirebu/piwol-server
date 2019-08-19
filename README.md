@@ -10,6 +10,20 @@ It aims to be a small server you can keep on 24/7 on a low powered device in you
 
 I'm developing this project just to have an excuse to use the Raspberry Pi and to scratch the proverbial itch. I'm still learning to code, so expect buggy and messy code. If anyone wants to join in the development, you're welcome to open issues and submit pull requests to show me where I'm going totally wrong.
 
+## Preparing the Raspberry Pi
+
+Much of the work is based on the `arp` command, which is not installed by default on the Raspberry. To get it installed you need to install the `net-tools` package
+
+```bash
+sudo apt install net-tools
+```
+
+On the Raspberry PI install `nodejs` with the following command
+
+```bash
+sudo apt install nodejs npm
+```
+
 ## How to test it
 
 Clone this repo, install its dependencies and you should be set:
