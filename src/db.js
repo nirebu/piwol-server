@@ -18,6 +18,6 @@ db._.mixin({
   }
 });
 
-db.defaults({ hosts:[] }).write();
+db.defaults({ devices:[] }).write();
 
 module.exports = db;
