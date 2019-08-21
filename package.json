@@ -20,7 +20,8 @@
 		"local-devices": "^2.0.0",
 		"lowdb": "^1.0.0",
 		"node-arp": "^1.0.6",
-		"node-wol": "^0.1.1"
+		"node-wol": "^0.1.1",
+		"ping": "^0.2.2"
 	},
 	"devDependencies": {
 		"nodemon": "^1.19.1"

@@ -4,111 +4,88 @@ require('dotenv').config();
 const wol = require('node-wol');
 const express = require('express');
 const scanner = require('local-devices');
+const ping = require('ping');
 const app = new express();
 
 /**
- * Route to scan the local netowrk and update the DB
- * @name get/scan
- * @param {String} path - Express path
- * @param {callback} handler - Handler of the path
- * @returns {Object}
+ * Route to scan the entire local network and update the DB
 */
 app.get('/scan/', (req, res) => {
 	scanner().then( (devices) => {
-		devices.forEach( device => {
+		const data = devices.map( device => { return { ...device, status: 'UP' }} );
+		console.log(`Found ${data.length} devices...`);
+		console.table(data);
+		data.forEach( device => {
 			db.get(`devices`)
-				.upsert({ mac: device.mac , ip: device.ip , name: device.name, status: 'UP' }, `mac`)
+				.upsert({
+					mac: device.mac,
+					ip: device.ip,
+					name: device.name,
+					status: device.status
+				}, `mac`)
 				.write();
 		});
-		const data = {...devices};
 		res.send(data);
 	});
 });
 
 /**
- * Route to list all the devices present in the DB
- * @name get/device
- * @param {String} path - Express path
- * @param {callback} handler - Handler of the path
- * @returns {Object}
+ * Route to ping a device in the DB
 */
-app.get(`/device/`, (req, res) => {
-	const devices = db.get(`devices`).value();
-	res.status(200).send(devices);
-});
-
-/**
- * Route to get a single device from the DB with the corresponding mac address
- * @name get/device/:mac
- * @param {String} path - Express path
- * @param {callback} handler - Handler of the path
- * @returns {Object}
-*/
-app.get(`/device/:mac`, (req, res) => {
-	wol.wake(req.params.mac, (err) => {
-		if( err ) throw new Error(`Error on waking the device`);
-
-		const device = db.get(`devices`).find({mac: req.params.mac}).value();
-		res.status(200).send(device);
-	});
-});
-
-/**
- * Route to wakeup the device with the corresponding mac address
- * @name get/device/:mac/wakeup
- * @param {String} path - Express path
- * @param {callback} handler - Handler of the path
- * @returns {Object}
-*/
-app.get(`/device/:mac/wakeup`, (req, res) => {
-	wol.wake(req.params.mac, (err) => {
-		if( err ) throw new Error(`Error on waking the device`);
-
-		const data = { mac: req.params.mac , magic: true };
-		res.status(200).send(data);
-	});
-});
-
-/**
- * Route to ping the device with the corresponding mac address
- * Initially we look in the DB for the IP corresponding to the mac address
- * if there's a match we scan the device and return the UP status
- * otherwise we scan the entire network to check if the device changed IP address
- * @name get/device/:mac/ping
- * @param {String} path - Express path
- * @param {callback} handler - Handler of the path
- * @returns {Object}
-*/
-app.get(`/device/:mac/ping`, (req, res) => {
-	const expectedIp = db.get(`devices`).find({ mac: req.params.mac }).value();
-	if( expectedIp )
+app.get('/ping/:mac', (req, res) => {
+	// Find the corresponding IP by looking up in the DB
+	const device = db.get(`devices`).find({mac: req.params.mac}).value();
+	if( device )
 	{
-		scanner(expectedIp.ip).then( device => {
-			const data = { ip: device.ip , mac: device.mac , status: 'UP' };
-			res.status(200).send(data);
-		})
-	}
-	else
-	{
-		scanner().then( (devices) => {
-			const device = devices.filter( device => device.mac === req.params.mac ).pop();
-			/**
-			 * In this way we check if the device changed IP address
-			 * if the address is indeed changed, we respond with the updated data
-			 * otherwise we consider the device DOWN
-			 */
-			if( device !== undefined )
+		console.info(`Found the following device, will try to ping its IP`);
+		console.info(device);
+		ping.promise.probe( device.ip ).then( pingRes => {
+			console.info(`The device with IP: ${device.ip} is ${ pingRes.alive ? "UP" : "DOWN" }`);
+			if( pingRes.alive )
 			{
-				const data = { ip: device.ip , mac: device.mac , status: 'UP' , ipAddressChanged: true };
-				res.status(200).send(data);
+				res.status(200).send(device);
 			}
 			else
 			{
-				const data = { mac: req.params.mac , status: 'DOWN' };
-				res.status(200).send(data);
+				console.warn(`Device not found, it means either: IP is changed OR the device is DOWN`);
+				scanner().then( devices => {
+					const device = devices.filter( device => device.mac === req.params.mac ).pop();
+					if( device )
+					{
+						console.info(`Found this device, looks like the IP address has changed`);
+						console.info(device);
+						console.info(`Updating the DB with the new IP...`);
+						db.get(`devices`)
+							.find({ mac: device.mac})
+							.assign({ ip: device.ip , status: 'UP' })
+							.write();
+						const data = { ...device , status: 'UP' };
+						res.status(200).send(data);
+					} else {
+						console.info(`Device not in network, must be down...`);
+						db.get(`devices`)
+							.find({ mac: req.params.mac})
+							.assign({ status: 'DOWN' })
+							.write();
+						const data = { mac: req.params.mac , ip: null , status: 'DOWN' };
+						res.status(200).send(data);
+					}
+				})
 			}
-		})
+		});
 	}
+	else
+	{
+		console.warn(`mac not in the db, maybe we should consider the eventuality`);
+		res.status(400).send({msg: "Mac address not in the DB"});
+	}
+});
+
+app.get('/wakeup/:mac', (req, res) => {
+	wol.wake(req.params.mac , err => {
+		if( err )
+			console.error(`Something went wrong while sending the MAGIC packet`);
+	})
 });
 
 
