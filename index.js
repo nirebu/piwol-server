@@ -5,7 +5,10 @@ const wol = require('node-wol');
 const express = require('express');
 const scanner = require('local-devices');
 const ping = require('ping');
+const cors = require('cors');
 const app = new express();
+
+app.use(cors());
 
 /**
  * Route to scan the entire local network and update the DB
@@ -32,7 +35,7 @@ app.get('/scan/', (req, res) => {
 /**
  * Route to ping a device in the DB
 */
-app.get('/ping/:mac', (req, res) => {
+app.get('/device/:mac/ping', (req, res) => {
 	// Find the corresponding IP by looking up in the DB
 	const device = db.get(`devices`).find({mac: req.params.mac}).value();
 	if( device )
@@ -81,12 +84,32 @@ app.get('/ping/:mac', (req, res) => {
 	}
 });
 
-app.get('/wakeup/:mac', (req, res) => {
+/**
+ * Route to ping a device in the DB
+*/
+app.get('/device/:mac/wakeup', (req, res) => {
 	wol.wake(req.params.mac , err => {
 		if( err )
 			console.error(`Something went wrong while sending the MAGIC packet`);
+		res.status(200).send({ msg: "Magic packet sent" , mac: req.params.mac });
 	})
 });
+
+app.get('/device/' , (req,res) =>{
+	const devices = db.get(`devices`).value();
+	res.status(200).send(devices);
+})
+
+/**
+ * Route to set a device as ignored
+*/
+app.get('/device/:mac/ignore' , (req, res) => {
+	const device = db.get(`devices`)
+		.find({ mac: req.params.mac })
+		.assign({ ignored: true })
+		.write();
+	res.status(200).send(device);
+})
 
 
 const port = process.env.SERVER_PORT || 3000;
