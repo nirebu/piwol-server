@@ -42,5 +42,5 @@ npm run dev
 
 ## Todo
 
-[ ] Integrate a logging middleware, perhaps `morgan`?
-[ ] Finish up the API, but first, need to build the frontend
+- [ ] Integrate a logging middleware, perhaps `morgan`?
+- [ ] Finish up the API, but first, need to build the frontend
