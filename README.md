@@ -39,3 +39,8 @@ Get yourself a ristretto while it installs (right now not many dependencies) and
 ```bash
 npm run dev
 ```
+
+## Todo
+
+[ ] Integrate a logging middleware, perhaps `morgan`?
+[ ] Finish up the API, but first, need to build the frontend
