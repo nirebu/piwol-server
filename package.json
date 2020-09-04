@@ -18,7 +18,7 @@
 		"cors": "^2.8.5",
 		"dotenv": "^8.1.0",
 		"express": "^4.17.1",
-		"local-devices": "^2.0.0",
+		"local-devices": "^3.0.0",
 		"lowdb": "^1.0.0",
 		"node-arp": "^1.0.6",
 		"node-wol": "^0.1.1",
